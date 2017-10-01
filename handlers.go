@@ -30,7 +30,11 @@ func Report(f AppErrorHandlerFunc) ErrorHandlerFunc {
 
 func MapStatusCode(m map[int]codes.Code) ErrorHandlerFunc {
 	return handleAppError(func(err *apperrors.Error) error {
-		return status.Error(m[err.StatusCode], err.Error())
+		newCode := codes.Internal
+		if c, ok := m[err.StatusCode]; ok {
+			newCode = c
+		}
+		return status.Error(newCode, err.Error())
 	})
 }
 
