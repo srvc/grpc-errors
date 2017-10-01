@@ -25,17 +25,17 @@ import (
 
 const (
 	CodeOK int = iota
-  CodeInvalidArgument
-  CodeNotFound
-  CodeYourCustomError
-  CodeNotWrapped
-  CodeUnknown
+	CodeInvalidArgument
+	CodeNotFound
+	CodeYourCustomError
+	CodeNotWrapped
+	CodeUnknown
 )
 
 var grpcCodeByYourCode = map[int]codes.Code{
-  CodeOK:              codes.OK,
-  CodeInvalidArgument: codes.InvalidArgument,
-  CodeNotFound:        codes.NotFound,
+	CodeOK:              codes.OK,
+	CodeInvalidArgument: codes.InvalidArgument,
+	CodeNotFound:        codes.NotFound,
 }
 
 func main() {
@@ -71,7 +71,7 @@ func main() {
 		),
 	)
 
-  // Register server implementations
+	// Register server implementations
 
 	s.Serve(lis)
 }
