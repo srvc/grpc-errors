@@ -12,8 +12,8 @@ type ErrorHandlerFunc func(error) error
 // AppErrorHandlerFunc is a function that called by interceptors when specified application erorrs are detected.
 type AppErrorHandlerFunc func(*apperrors.Error) error
 
-// HandleNotWrappedError returns a new error handler function for handling not wrapped errors.
-func HandleNotWrappedError(f ErrorHandlerFunc) ErrorHandlerFunc {
+// WithNotWrappedErrorHandler returns a new error handler function for handling not wrapped errors.
+func WithNotWrappedErrorHandler(f ErrorHandlerFunc) ErrorHandlerFunc {
 	return func(err error) error {
 		appErr := apperrors.Unwrap(err)
 		if appErr == nil {
@@ -23,8 +23,8 @@ func HandleNotWrappedError(f ErrorHandlerFunc) ErrorHandlerFunc {
 	}
 }
 
-// Report returns a new error handler function for handling errors annotated with the reportability.
-func Report(f AppErrorHandlerFunc) ErrorHandlerFunc {
+// WithReportableErrorHandler returns a new error handler function for handling errors annotated with the reportability.
+func WithReportableErrorHandler(f AppErrorHandlerFunc) ErrorHandlerFunc {
 	return handleAppError(func(err *apperrors.Error) error {
 		if err.Report {
 			return f(err)
@@ -33,8 +33,8 @@ func Report(f AppErrorHandlerFunc) ErrorHandlerFunc {
 	})
 }
 
-// MapStatusCode returns a new error handler function for mapping status codes to gRPC's one.
-func MapStatusCode(m map[int]codes.Code) ErrorHandlerFunc {
+// WithStatusCodeMapper returns a new error handler function for mapping status codes to gRPC's one.
+func WithStatusCodeMapper(m map[int]codes.Code) ErrorHandlerFunc {
 	return handleAppError(func(err *apperrors.Error) error {
 		newCode := codes.Internal
 		if c, ok := m[err.StatusCode]; ok {
