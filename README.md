@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.org/izumin5210/grpc-errors.svg?branch=master)](https://travis-ci.org/izumin5210/grpc-errors)
 [![codecov](https://codecov.io/gh/izumin5210/grpc-errors/branch/master/graph/badge.svg)](https://codecov.io/gh/izumin5210/grpc-errors)
 [![GoDoc](https://godoc.org/github.com/izumin5210/grpc-errors?status.svg)](https://godoc.org/github.com/izumin5210/grpc-errors)
+[![Go project version](https://badge.fury.io/go/github.com%2Fizumin5210%2Fgrpc-errors.svg)](https://badge.fury.io/go/github.com%2Fizumin5210%2Fgrpc-errors)
 [![Go Report Card](https://goreportcard.com/badge/github.com/izumin5210/grpc-errors)](https://goreportcard.com/report/github.com/izumin5210/grpc-errors)
 [![license](https://img.shields.io/github/license/izumin5210/grpc-errors.svg)](./LICENSE)
 
