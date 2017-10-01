@@ -2,10 +2,22 @@
 
 
 [[projects]]
+  name = "github.com/creasty/apperrors"
+  packages = ["."]
+  revision = "c9bdbba6b05d5cd9539f6b3f6633a8dabe03afbf"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
   revision = "130e6b02ab059e7b717a096f397c5b60111cae74"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"
@@ -34,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "06047f523c061c1697bde08a6bc073853958944e42a4d05f6e84dd92a685af7d"
+  inputs-digest = "372b732419af02dd1401bd835c9bccc65deee32016490ea933460a62bcf47ee9"
   solver-name = "gps-cdcl"
   solver-version = 1

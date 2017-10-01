@@ -24,3 +24,7 @@
 [[constraint]]
   name = "google.golang.org/grpc"
   version = "1.6.0"
+
+[[constraint]]
+  name = "github.com/creasty/apperrors"
+  version = "1.0.0"
