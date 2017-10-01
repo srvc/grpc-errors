@@ -19,3 +19,4 @@
 ### misc ###
 vendor/
 coverage.txt
+bin/
