@@ -7,15 +7,18 @@ import (
 )
 
 // UnaryServerInterceptor returns a new unary server interceptor to handle errors
-func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
+func UnaryServerInterceptor(funcs ...ErrorHandlerFunc) grpc.UnaryServerInterceptor {
+	handleError := composeHandlers(funcs)
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		return handler(ctx, req)
+		resp, err := handler(ctx, req)
+		return resp, handleError(err)
 	}
 }
 
 // StreamServerInterceptor returns a new streaming server interceptor to handle errors
-func StreamServerInterceptor() grpc.StreamServerInterceptor {
+func StreamServerInterceptor(funcs ...ErrorHandlerFunc) grpc.StreamServerInterceptor {
+	handleError := composeHandlers(funcs)
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		return handler(srv, stream)
+		return handleError(handler(srv, stream))
 	}
 }
