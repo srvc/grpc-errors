@@ -17,8 +17,8 @@ import (
 	"net"
 
 	"github.com/creasty/apperrors"
-	"github.com/izumin5210/grpc-errors"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/izumin5210/grpc-errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -39,9 +39,9 @@ var grpcCodeByYourCode = map[int]codes.Code{
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ctx.Config.Host)
+	lis, err := net.Listen("tcp", "api.example.com:80")
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	s := grpc.NewServer(
@@ -51,7 +51,7 @@ func main() {
 					return apperrors.WithStatusCode(err, CodeNotWrapped)
 				}),
 				grpcerrors.WithReportableErrorHandler(func(err *apperrors.Error) error {
-					swtich err.StatusCode {
+					switch err.StatusCode {
 					case CodeYourCustomError:
 						// Report your custom errors
 					case CodeNotWrapped:
