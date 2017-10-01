@@ -1,4 +1,10 @@
 # grpc-errors
+[![Build Status](https://travis-ci.org/izumin5210/grpc-errors.svg?branch=master)](https://travis-ci.org/izumin5210/grpc-errors)
+[![codecov](https://codecov.io/gh/izumin5210/grpc-errors/branch/master/graph/badge.svg)](https://codecov.io/gh/izumin5210/grpc-errors)
+[![GoDoc](https://godoc.org/github.com/izumin5210/grpc-errors?status.svg)](https://godoc.org/github.com/izumin5210/grpc-errors)
+[![Go Report Card](https://goreportcard.com/badge/github.com/izumin5210/grpc-errors)](https://goreportcard.com/report/github.com/izumin5210/grpc-errors)
+[![license](https://img.shields.io/github/license/izumin5210/grpc-errors.svg)](./LICENSE)
+
 `grpc-errors` is a middleware providing better error handling to resolve errors easily.
 
 ## Example
