@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.org/izumin5210/grpc-errors.svg?branch=master)](https://travis-ci.org/izumin5210/grpc-errors)
 [![codecov](https://codecov.io/gh/izumin5210/grpc-errors/branch/master/graph/badge.svg)](https://codecov.io/gh/izumin5210/grpc-errors)
 [![GoDoc](https://godoc.org/github.com/izumin5210/grpc-errors?status.svg)](https://godoc.org/github.com/izumin5210/grpc-errors)
+[![Go project version](https://badge.fury.io/go/github.com%2Fizumin5210%2Fgrpc-errors.svg)](https://badge.fury.io/go/github.com%2Fizumin5210%2Fgrpc-errors)
 [![Go Report Card](https://goreportcard.com/badge/github.com/izumin5210/grpc-errors)](https://goreportcard.com/report/github.com/izumin5210/grpc-errors)
 [![license](https://img.shields.io/github/license/izumin5210/grpc-errors.svg)](./LICENSE)
 
@@ -17,8 +18,8 @@ import (
 	"net"
 
 	"github.com/creasty/apperrors"
-	"github.com/izumin5210/grpc-errors"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/izumin5210/grpc-errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -39,9 +40,9 @@ var grpcCodeByYourCode = map[int]codes.Code{
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ctx.Config.Host)
+	lis, err := net.Listen("tcp", "api.example.com:80")
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	s := grpc.NewServer(
@@ -51,7 +52,7 @@ func main() {
 					return apperrors.WithStatusCode(err, CodeNotWrapped)
 				}),
 				grpcerrors.WithReportableErrorHandler(func(err *apperrors.Error) error {
-					swtich err.StatusCode {
+					switch err.StatusCode {
 					case CodeYourCustomError:
 						// Report your custom errors
 					case CodeNotWrapped:
