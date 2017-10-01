@@ -47,10 +47,10 @@ func main() {
 	s := grpc.NewServer(
 		grpc_middleware.WithStreamServerChain(
 			grpcerrors.StreamServerInterceptor(
-				grpcerrors.HandleNotWrappedError(func(err error) error {
+				grpcerrors.WithNotWrappedErrorHandler(func(err error) error {
 					return apperrors.WithStatusCode(err, CodeNotWrapped)
 				}),
-				grpcerrors.Report(func(err *apperrors.Error) error {
+				grpcerrors.WithReportableErrorHandler(func(err *apperrors.Error) error {
 					swtich err.StatusCode {
 					case CodeYourCustomError:
 						// Report your custom errors
@@ -61,7 +61,7 @@ func main() {
 					}
 					return err
 				}),
-				grpcerrors.MapStatusCode(grpcCodeByYourCode),
+				grpcerrors.WithStatusCodeMapper(grpcCodeByYourCode),
 			),
 		),
 		grpc_middleware.WithUnaryServerChain(
