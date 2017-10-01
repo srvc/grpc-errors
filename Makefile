@@ -1,5 +1,5 @@
 SRC_FILES := $(shell git ls-files | grep -E "\.go$$" | grep -v -E "\.pb(:?\.gw)?\.go$$")
-GO_TEST_FLAGS  := -v -race
+GO_TEST_FLAGS  := -v -race -coverprofile=coverage.txt -covermode=atomic
 
 DEP_COMMANDS := \
 	vendor/github.com/golang/protobuf/protoc-gen-go
@@ -29,9 +29,8 @@ lint:
 	@go vet ./...
 
 .PHONY: test
-test: gen lint
-	@go test $(GO_TEST_FLAGS) ./...
+test: gen ci-test
 
 .PHONY: ci-test
 ci-test: lint
-	@go test $(GO_TEST_FLAGS) ./...
+	@go test $(GO_TEST_FLAGS)
