@@ -59,11 +59,11 @@ func Test_UnaryServerInterceptor_WhenDoesNotRespondErrors(t *testing.T) {
 	ctx.Service = &emptyService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			HandleNotWrappedError(func(err error) error {
+			WithNotWrappedErrorHandler(func(err error) error {
 				called = true
 				return err
 			}),
-			Report(func(err *apperrors.Error) error {
+			WithReportableErrorHandler(func(err *apperrors.Error) error {
 				called = true
 				return err
 			}),
@@ -87,14 +87,14 @@ func Test_UnaryServerInterceptor_WhenDoesNotRespondErrors(t *testing.T) {
 	}
 }
 
-func Test_UnaryServerInterceptor_HandleNotWrappedError_WhenAnErrorIsNotWrappedWithAppError(t *testing.T) {
+func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsNotWrappedWithAppError(t *testing.T) {
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)
 	ctx.Service = &errorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			HandleNotWrappedError(func(err error) error {
+			WithNotWrappedErrorHandler(func(err error) error {
 				called = true
 				return err
 			}),
@@ -118,14 +118,14 @@ func Test_UnaryServerInterceptor_HandleNotWrappedError_WhenAnErrorIsNotWrappedWi
 	}
 }
 
-func Test_UnaryServerInterceptor_HandleNotWrappedError_WhenAnErrorIsWrappedWithAppError(t *testing.T) {
+func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsWrappedWithAppError(t *testing.T) {
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)
 	ctx.Service = &appErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			HandleNotWrappedError(func(err error) error {
+			WithNotWrappedErrorHandler(func(err error) error {
 				called = true
 				return err
 			}),
@@ -149,14 +149,14 @@ func Test_UnaryServerInterceptor_HandleNotWrappedError_WhenAnErrorIsWrappedWithA
 	}
 }
 
-func Test_UnaryServerInterceptor_Reporting_WhenAnErrorIsNotAnnotatedWithReport(t *testing.T) {
+func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsNotAnnotatedWithReport(t *testing.T) {
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)
 	ctx.Service = &appErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			Report(func(err *apperrors.Error) error {
+			WithReportableErrorHandler(func(err *apperrors.Error) error {
 				called = true
 				return err
 			}),
@@ -180,14 +180,14 @@ func Test_UnaryServerInterceptor_Reporting_WhenAnErrorIsNotAnnotatedWithReport(t
 	}
 }
 
-func Test_UnaryServerInterceptor_Reporting_WhenAnErrorIsAnnotatedWithReport(t *testing.T) {
+func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsAnnotatedWithReport(t *testing.T) {
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)
 	ctx.Service = &reportErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			Report(func(err *apperrors.Error) error {
+			WithReportableErrorHandler(func(err *apperrors.Error) error {
 				called = true
 				return err
 			}),
@@ -211,7 +211,7 @@ func Test_UnaryServerInterceptor_Reporting_WhenAnErrorIsAnnotatedWithReport(t *t
 	}
 }
 
-func Test_UnaryServerInterceptor_MapStatusCode(t *testing.T) {
+func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
 	code := 50
 	mappedCode := codes.Unavailable
 
@@ -219,7 +219,7 @@ func Test_UnaryServerInterceptor_MapStatusCode(t *testing.T) {
 	ctx.Service = &errorWithStatusService{Code: code}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			MapStatusCode(map[int]codes.Code{
+			WithStatusCodeMapper(map[int]codes.Code{
 				code: mappedCode,
 			}),
 		),
@@ -244,7 +244,7 @@ func Test_UnaryServerInterceptor_MapStatusCode(t *testing.T) {
 	}
 }
 
-func Test_UnaryServerInterceptor_MapStatusCode_WhenUnknownCode(t *testing.T) {
+func Test_UnaryServerInterceptor_WithStatusCodeMapper_WhenUnknownCode(t *testing.T) {
 	code := 50
 	mappedCode := codes.Unavailable
 
@@ -252,7 +252,7 @@ func Test_UnaryServerInterceptor_MapStatusCode_WhenUnknownCode(t *testing.T) {
 	ctx.Service = &errorWithStatusService{Code: code + 1}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			MapStatusCode(map[int]codes.Code{
+			WithStatusCodeMapper(map[int]codes.Code{
 				code: mappedCode,
 			}),
 		),
