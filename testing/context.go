@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// TestContext is a testing helper for generating a gRPC server and a gRPC client.
 type TestContext struct {
 	t *testing.T
 
@@ -22,16 +23,19 @@ type TestContext struct {
 	Client  TestServiceClient
 }
 
+// CreateTestContext returns a new TestContext object.
 func CreateTestContext(t *testing.T) *TestContext {
 	return &TestContext{t: t}
 }
 
+// AddUnaryServerInterceptor sets interceptors to a test server.
 func (c *TestContext) AddUnaryServerInterceptor(i grpc.UnaryServerInterceptor) {
 	c.ServerOpts = []grpc.ServerOption{
 		grpc.UnaryInterceptor(i),
 	}
 }
 
+// Setup starts a server and creates a client connection.
 func (c *TestContext) Setup() {
 	if c.Service == nil {
 		c.t.Fatal("Should set errorstesting.TestService implementaiton")
@@ -40,6 +44,7 @@ func (c *TestContext) Setup() {
 	c.setupClient()
 }
 
+// Teardown disconnects a client connection and stops a server
 func (c *TestContext) Teardown() {
 	time.Sleep(10 * time.Millisecond)
 	if c.serverListener != nil {
@@ -49,10 +54,6 @@ func (c *TestContext) Teardown() {
 	if c.clientConn != nil {
 		c.clientConn.Close()
 	}
-}
-
-func (c *TestContext) ServerAddr() string {
-	return c.serverListener.Addr().String()
 }
 
 func (c *TestContext) setupServer() {
@@ -70,7 +71,7 @@ func (c *TestContext) setupServer() {
 func (c *TestContext) setupClient() {
 	var err error
 	dialOpts := append(c.ClientOpts, grpc.WithBlock(), grpc.WithTimeout(2*time.Second), grpc.WithInsecure())
-	c.clientConn, err = grpc.Dial(c.ServerAddr(), dialOpts...)
+	c.clientConn, err = grpc.Dial(c.serverListener.Addr().String(), dialOpts...)
 	if err != nil {
 		c.Teardown()
 		c.t.Fatal("Failed to create a client connection")
