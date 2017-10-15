@@ -59,11 +59,11 @@ func Test_UnaryServerInterceptor_WhenDoesNotRespondErrors(t *testing.T) {
 	ctx.Service = &emptyService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithNotWrappedErrorHandler(func(err error) error {
+			WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
 				called = true
 				return err
 			}),
-			WithReportableErrorHandler(func(err *apperrors.Error) error {
+			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
 				called = true
 				return err
 			}),
@@ -94,7 +94,7 @@ func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsNotWrap
 	ctx.Service = &errorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithNotWrappedErrorHandler(func(err error) error {
+			WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
 				called = true
 				return err
 			}),
@@ -125,7 +125,7 @@ func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsWrapped
 	ctx.Service = &appErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithNotWrappedErrorHandler(func(err error) error {
+			WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
 				called = true
 				return err
 			}),
@@ -156,7 +156,7 @@ func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsNotAnno
 	ctx.Service = &appErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithReportableErrorHandler(func(err *apperrors.Error) error {
+			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
 				called = true
 				return err
 			}),
@@ -187,7 +187,7 @@ func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsAnnotat
 	ctx.Service = &reportErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithReportableErrorHandler(func(err *apperrors.Error) error {
+			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
 				called = true
 				return err
 			}),
