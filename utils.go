@@ -1,10 +1,14 @@
 package grpcerrors
 
+import (
+	"golang.org/x/net/context"
+)
+
 func composeHandlers(funcs []ErrorHandlerFunc) ErrorHandlerFunc {
-	return func(err error) error {
+	return func(c context.Context, err error) error {
 		if err != nil {
 			for _, f := range funcs {
-				err = f(err)
+				err = f(c, err)
 				if err == nil {
 					break
 				}
