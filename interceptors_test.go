@@ -211,7 +211,7 @@ func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsAnnotat
 	}
 }
 
-func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
+func Test_UnaryServerInterceptor_WithStatusCodeMap(t *testing.T) {
 	code := 50
 	mappedCode := codes.Unavailable
 
@@ -219,7 +219,7 @@ func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
 	ctx.Service = &errorWithStatusService{Code: code}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithStatusCodeMapper(map[int]codes.Code{
+			WithStatusCodeMap(map[int]codes.Code{
 				code: mappedCode,
 			}),
 		),
@@ -244,7 +244,7 @@ func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
 	}
 }
 
-func Test_UnaryServerInterceptor_WithStatusCodeMapper_WhenUnknownCode(t *testing.T) {
+func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenUnknownCode(t *testing.T) {
 	code := 50
 	mappedCode := codes.Unavailable
 
@@ -252,7 +252,7 @@ func Test_UnaryServerInterceptor_WithStatusCodeMapper_WhenUnknownCode(t *testing
 	ctx.Service = &errorWithStatusService{Code: code + 1}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithStatusCodeMapper(map[int]codes.Code{
+			WithStatusCodeMap(map[int]codes.Code{
 				code: mappedCode,
 			}),
 		),
@@ -273,6 +273,42 @@ func Test_UnaryServerInterceptor_WithStatusCodeMapper_WhenUnknownCode(t *testing
 	if st, ok := status.FromError(err); !ok {
 		t.Error("Returned error should has status code")
 	} else if got, want := st.Code(), codes.Internal; got != want {
+		t.Errorf("Returned error had status code %v, want %v", got, want)
+	}
+}
+
+func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
+	code := 50
+	mappedCode := codes.Unavailable
+
+	ctx := errorstesting.CreateTestContext(t)
+	ctx.Service = &errorWithStatusService{Code: code}
+	ctx.AddUnaryServerInterceptor(
+		UnaryServerInterceptor(
+			WithStatusCodeMapper(func(c int) codes.Code {
+				if got, want := c, code; got != want {
+					t.Errorf("Mapper func received %d, want %d", got, want)
+				}
+				return mappedCode
+			}),
+		),
+	)
+	ctx.Setup()
+	defer ctx.Teardown()
+
+	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
+
+	if resp != nil {
+		t.Error("The request should not return any responses")
+	}
+
+	if err == nil {
+		t.Error("The request should return an error")
+	}
+
+	if st, ok := status.FromError(err); !ok {
+		t.Error("Returned error should has status code")
+	} else if got, want := st.Code(), mappedCode; got != want {
 		t.Errorf("Returned error had status code %v, want %v", got, want)
 	}
 }

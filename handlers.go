@@ -45,13 +45,20 @@ func WithReportableErrorHandler(f AppErrorHandlerFunc) ErrorHandlerFunc {
 	})
 }
 
-// WithStatusCodeMapper returns a new error handler function for mapping status codes to gRPC's one.
-func WithStatusCodeMapper(m map[int]codes.Code) ErrorHandlerFunc {
+// WithStatusCodeMap returns a new error handler function for mapping status codes to gRPC's one.
+func WithStatusCodeMap(m map[int]codes.Code) ErrorHandlerFunc {
 	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
 		newCode := codes.Internal
 		if c, ok := m[err.StatusCode]; ok {
 			newCode = c
 		}
 		return status.Error(newCode, err.Error())
+	})
+}
+
+// WithStatusCodeMapper returns a new error handler function for mapping status codes to gRPC's one with given function.
+func WithStatusCodeMapper(mapFn func(code int) codes.Code) ErrorHandlerFunc {
+	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
+		return status.Error(mapFn(err.StatusCode), err.Error())
 	})
 }
