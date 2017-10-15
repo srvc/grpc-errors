@@ -45,30 +45,27 @@ func main() {
 		panic(err)
 	}
 
+	errorHandlers := []grpcerrors.ErrorHandlerFunc{
+		grpcerrors.WithNotWrappedErrorHandler(func(c context.Context, err error) error {
+			// WithNotWrappedErrorHandler handles an error not wrapped with `*apperror.Error`.
+			// A handler function should wrap received error with `*apperror.Error`.
+			return apperrors.WithStatusCode(err, CodeNotWrapped)
+		}),
+		grpcerrors.WithReportableErrorHandler(func(c context.Context, err *apperrors.Error) error {
+			// WithReportableErrorHandler handles an erorr annotated with the reportability.
+			// You reports to an external service if necessary.
+			// And you can attach request contexts to error reports.
+			return err
+		}),
+		grpcerrors.WithStatusCodeMap(grpcCodeByYourCode),
+	}
+
 	s := grpc.NewServer(
 		grpc_middleware.WithStreamServerChain(
-			grpcerrors.StreamServerInterceptor(
-				grpcerrors.WithNotWrappedErrorHandler(func(err error) error {
-					return apperrors.WithStatusCode(err, CodeNotWrapped)
-				}),
-				grpcerrors.WithReportableErrorHandler(func(err *apperrors.Error) error {
-					switch err.StatusCode {
-					case CodeYourCustomError:
-						// Report your custom errors
-					case CodeNotWrapped:
-						// Report not wrapped errors
-					default:
-						// Report errors
-					}
-					return err
-				}),
-				grpcerrors.WithStatusCodeMapper(grpcCodeByYourCode),
-			),
+			grpcerrors.StreamServerInterceptor(errorHandlers...),
 		),
 		grpc_middleware.WithUnaryServerChain(
-			grpcerrors.UnaryServerInterceptor(
-				// Write your error handlers for an unary server
-			),
+			grpcerrors.UnaryServerInterceptor(errorHandlers...),
 		),
 	)
 
