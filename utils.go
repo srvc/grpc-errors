@@ -5,20 +5,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-func composeHandlers(funcs []ErrorHandlerFunc) ErrorHandlerFunc {
-	return func(c context.Context, err error) error {
-		if err != nil {
-			for _, f := range funcs {
-				err = f(c, err)
-				if err == nil {
-					break
-				}
-			}
-		}
-		return err
-	}
-}
-
 type composedUnaryServerErrorHandler struct {
 	handlers []UnaryServerErrorHandler
 }
