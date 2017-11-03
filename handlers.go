@@ -3,9 +3,20 @@ package grpcerrors
 import (
 	"github.com/creasty/apperrors"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// UnaryServerErrorHandler is the interface that can handle errors on a gRPC unary server
+type UnaryServerErrorHandler interface {
+	HandleUnaryServerError(context.Context, interface{}, *grpc.UnaryServerInfo, error) error
+}
+
+// StreamServerErrorHandler is the interface that can handle errors on a gRPC stream server
+type StreamServerErrorHandler interface {
+	HandleStreamServerError(context.Context, interface{}, interface{}, *grpc.StreamServerInfo, error) error
+}
 
 // ErrorHandlerFunc is a function that called by interceptors when specified erorrs are detected.
 type ErrorHandlerFunc func(context.Context, error) error
