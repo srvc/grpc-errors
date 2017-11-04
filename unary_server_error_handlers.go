@@ -1,9 +1,8 @@
 package grpcerrors
 
 import (
-	"context"
-
 	"github.com/creasty/apperrors"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
