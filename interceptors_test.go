@@ -2,10 +2,12 @@ package grpcerrors
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/creasty/apperrors"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -310,5 +312,74 @@ func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
 		t.Error("Returned error should has status code")
 	} else if got, want := st.Code(), mappedCode; got != want {
 		t.Errorf("Returned error had status code %v, want %v", got, want)
+	}
+}
+
+// Testings for UnaryServerErrorHandler
+// ================================================
+func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErrorIsNotAnnotatedWithReport(t *testing.T) {
+	called := false
+	req := &errorstesting.Empty{}
+
+	ctx := errorstesting.CreateTestContext(t)
+	ctx.Service = &appErrorService{}
+	ctx.AddUnaryServerInterceptor(
+		UnaryServerInterceptor(
+			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *apperrors.Error) error {
+				called = true
+				return err
+			}),
+		),
+	)
+	ctx.Setup()
+	defer ctx.Teardown()
+
+	resp, err := ctx.Client.EmptyCall(context.Background(), req)
+
+	if resp != nil {
+		t.Error("The request should not return any responses")
+	}
+
+	if err == nil {
+		t.Error("The request should return an error")
+	}
+
+	if called {
+		t.Error("Report error handler should not be called")
+	}
+}
+
+func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErrorIsAnnotatedWithReport(t *testing.T) {
+	called := false
+	req := &errorstesting.Empty{}
+
+	ctx := errorstesting.CreateTestContext(t)
+	ctx.Service = &reportErrorService{}
+	ctx.AddUnaryServerInterceptor(
+		UnaryServerInterceptor(
+			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *apperrors.Error) error {
+				called = true
+				if got, want := gotReq, req; !reflect.DeepEqual(got, want) {
+					t.Errorf("Received request is %v, want %v", got, want)
+				}
+				return err
+			}),
+		),
+	)
+	ctx.Setup()
+	defer ctx.Teardown()
+
+	resp, err := ctx.Client.EmptyCall(context.Background(), req)
+
+	if resp != nil {
+		t.Error("The request should not return any responses")
+	}
+
+	if err == nil {
+		t.Error("The request should return an error")
+	}
+
+	if !called {
+		t.Error("Report error handler should be called")
 	}
 }
