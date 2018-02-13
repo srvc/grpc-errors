@@ -99,7 +99,7 @@ func WithStatusCodeMap(m map[int]codes.Code) interface {
 	StreamServerErrorHandler
 } {
 	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
-		newCode := codes.Internal
+		newCode := codes.Unknown
 		if c, ok := m[err.StatusCode]; ok {
 			newCode = c
 		}

@@ -274,7 +274,7 @@ func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenUnknownCode(t *testing.T)
 
 	if st, ok := status.FromError(err); !ok {
 		t.Error("Returned error should has status code")
-	} else if got, want := st.Code(), codes.Internal; got != want {
+	} else if got, want := st.Code(), codes.Unknown; got != want {
 		t.Errorf("Returned error had status code %v, want %v", got, want)
 	}
 }
