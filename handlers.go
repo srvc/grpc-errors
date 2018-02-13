@@ -100,7 +100,9 @@ func WithStatusCodeMap(m map[int]codes.Code) interface {
 } {
 	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
 		newCode := codes.Unknown
-		if c, ok := m[err.StatusCode]; ok {
+		if s, ok := status.FromError(err.Err); ok {
+			newCode = s.Code()
+		} else if c, ok := m[err.StatusCode]; ok {
 			newCode = c
 		}
 		return status.Error(newCode, err.Error())

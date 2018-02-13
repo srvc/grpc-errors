@@ -52,6 +52,14 @@ func (s *errorWithStatusService) EmptyCall(context.Context, *errorstesting.Empty
 	return nil, apperrors.WithStatusCode(errors.New("This error has a status code"), s.Code)
 }
 
+type errorWithGrpcStatusService struct {
+	Code codes.Code
+}
+
+func (s *errorWithGrpcStatusService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
+	return nil, apperrors.Wrap(status.Error(s.Code, "This error has a gRPC status code"))
+}
+
 // Testings
 // ================================================
 func Test_UnaryServerInterceptor_WhenDoesNotRespondErrors(t *testing.T) {
@@ -275,6 +283,38 @@ func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenUnknownCode(t *testing.T)
 	if st, ok := status.FromError(err); !ok {
 		t.Error("Returned error should has status code")
 	} else if got, want := st.Code(), codes.Unknown; got != want {
+		t.Errorf("Returned error had status code %v, want %v", got, want)
+	}
+}
+
+func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenAlreadySet(t *testing.T) {
+	code := codes.Unauthenticated
+
+	ctx := errorstesting.CreateTestContext(t)
+	ctx.Service = &errorWithGrpcStatusService{Code: code}
+	ctx.AddUnaryServerInterceptor(
+		UnaryServerInterceptor(
+			WithStatusCodeMap(map[int]codes.Code{
+				int(code): codes.Aborted,
+			}),
+		),
+	)
+	ctx.Setup()
+	defer ctx.Teardown()
+
+	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
+
+	if resp != nil {
+		t.Error("The request should not return any responses")
+	}
+
+	if err == nil {
+		t.Error("The request should return an error")
+	}
+
+	if st, ok := status.FromError(err); !ok {
+		t.Error("Returned error should has status code")
+	} else if got, want := st.Code(), code; got != want {
 		t.Errorf("Returned error had status code %v, want %v", got, want)
 	}
 }
