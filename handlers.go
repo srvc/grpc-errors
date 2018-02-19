@@ -99,13 +99,10 @@ func WithStatusCodeMap(m map[int]codes.Code) interface {
 	StreamServerErrorHandler
 } {
 	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
-		newCode := codes.Unknown
-		if s, ok := status.FromError(err.Err); ok {
-			newCode = s.Code()
-		} else if c, ok := m[err.StatusCode]; ok {
-			newCode = c
+		if c, ok := m[err.StatusCode]; ok {
+			return status.Error(c, err.Error())
 		}
-		return status.Error(newCode, err.Error())
+		return err
 	})
 }
 
@@ -116,5 +113,18 @@ func WithStatusCodeMapper(mapFn func(code int) codes.Code) interface {
 } {
 	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
 		return status.Error(mapFn(err.StatusCode), err.Error())
+	})
+}
+
+// WithGrpcStatusUnwrapper returns unwrapped error if this has a gRPC status.
+func WithGrpcStatusUnwrapper() interface {
+	UnaryServerErrorHandler
+	StreamServerErrorHandler
+} {
+	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
+		if _, ok := status.FromError(err.Err); ok {
+			return err.Err
+		}
+		return err
 	})
 }

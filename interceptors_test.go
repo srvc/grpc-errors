@@ -287,15 +287,16 @@ func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenUnknownCode(t *testing.T)
 	}
 }
 
-func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenAlreadySet(t *testing.T) {
+func Test_UnaryServerInterceptor_WithGrpcStatusUnwrapper(t *testing.T) {
 	code := codes.Unauthenticated
 
 	ctx := errorstesting.CreateTestContext(t)
 	ctx.Service = &errorWithGrpcStatusService{Code: code}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
+			WithGrpcStatusUnwrapper(),
 			WithStatusCodeMap(map[int]codes.Code{
-				int(code): codes.Aborted,
+				50: codes.Unavailable,
 			}),
 		),
 	)
@@ -315,6 +316,38 @@ func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenAlreadySet(t *testing.T) 
 	if st, ok := status.FromError(err); !ok {
 		t.Error("Returned error should has status code")
 	} else if got, want := st.Code(), code; got != want {
+		t.Errorf("Returned error had status code %v, want %v", got, want)
+	}
+}
+
+func Test_UnaryServerInterceptor_WithGrpcStatusUnwrapper_WithoutGrpcStatus(t *testing.T) {
+	code := 50
+	ctx := errorstesting.CreateTestContext(t)
+	ctx.Service = &errorWithStatusService{Code: code}
+	ctx.AddUnaryServerInterceptor(
+		UnaryServerInterceptor(
+			WithGrpcStatusUnwrapper(),
+			WithStatusCodeMap(map[int]codes.Code{
+				code: codes.Unauthenticated,
+			}),
+		),
+	)
+	ctx.Setup()
+	defer ctx.Teardown()
+
+	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
+
+	if resp != nil {
+		t.Error("The request should not return any responses")
+	}
+
+	if err == nil {
+		t.Error("The request should return an error")
+	}
+
+	if st, ok := status.FromError(err); !ok {
+		t.Error("Returned error should has status code")
+	} else if got, want := st.Code(), codes.Unauthenticated; got != want {
 		t.Errorf("Returned error had status code %v, want %v", got, want)
 	}
 }
