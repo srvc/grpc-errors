@@ -229,7 +229,7 @@ func Test_UnaryServerInterceptor_WithStatusCodeMap(t *testing.T) {
 	ctx.Service = &errorWithStatusService{Code: code}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithStatusCodeMap(map[int]codes.Code{
+			WithStatusCodeMap(CodeMap{
 				code: mappedCode,
 			}),
 		),
@@ -262,7 +262,7 @@ func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenUnknownCode(t *testing.T)
 	ctx.Service = &errorWithStatusService{Code: code + 1}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithStatusCodeMap(map[int]codes.Code{
+			WithStatusCodeMap(CodeMap{
 				code: mappedCode,
 			}),
 		),
@@ -295,7 +295,7 @@ func Test_UnaryServerInterceptor_WithGrpcStatusUnwrapper(t *testing.T) {
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
 			WithGrpcStatusUnwrapper(),
-			WithStatusCodeMap(map[int]codes.Code{
+			WithStatusCodeMap(CodeMap{
 				50: codes.Unavailable,
 			}),
 		),
@@ -327,7 +327,7 @@ func Test_UnaryServerInterceptor_WithGrpcStatusUnwrapper_WithoutGrpcStatus(t *te
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
 			WithGrpcStatusUnwrapper(),
-			WithStatusCodeMap(map[int]codes.Code{
+			WithStatusCodeMap(CodeMap{
 				code: codes.Unauthenticated,
 			}),
 		),
@@ -360,7 +360,7 @@ func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
 	ctx.Service = &errorWithStatusService{Code: code}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithStatusCodeMapper(func(c int) codes.Code {
+			WithStatusCodeMapper(func(c interface{}) codes.Code {
 				if got, want := c, code; got != want {
 					t.Errorf("Mapper func received %d, want %d", got, want)
 				}
