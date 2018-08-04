@@ -30,10 +30,10 @@ func (s *errorService) EmptyCall(context.Context, *errorstesting.Empty) (*errors
 	return nil, errors.New("This error is not wrapped with fail.Error")
 }
 
-type appErrorService struct {
+type failService struct {
 }
 
-func (s *appErrorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
+func (s *failService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
 	return nil, fail.New("This error is wrapped with fail.Error")
 }
 
@@ -132,7 +132,7 @@ func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsWrapped
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &appErrorService{}
+	ctx.Service = &failService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
 			WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
@@ -163,7 +163,7 @@ func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsNotAnno
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &appErrorService{}
+	ctx.Service = &failService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
 			WithReportableErrorHandler(func(_ context.Context, err *fail.Error) error {
@@ -395,7 +395,7 @@ func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErr
 	req := &errorstesting.Empty{}
 
 	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &appErrorService{}
+	ctx.Service = &failService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
 			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *fail.Error) error {

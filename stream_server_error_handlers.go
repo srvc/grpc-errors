@@ -14,9 +14,9 @@ type streamServerFailHandler struct {
 }
 
 func (h *streamServerFailHandler) HandleStreamServerError(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err error) error {
-	appErr := fail.Unwrap(err)
-	if appErr != nil {
-		return h.f(c, req, resp, info, appErr)
+	fErr := fail.Unwrap(err)
+	if fErr != nil {
+		return h.f(c, req, resp, info, fErr)
 	}
 	return err
 }

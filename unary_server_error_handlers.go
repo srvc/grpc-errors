@@ -14,9 +14,9 @@ type unaryServerFailHandler struct {
 }
 
 func (h *unaryServerFailHandler) HandleUnaryServerError(c context.Context, req interface{}, info *grpc.UnaryServerInfo, err error) error {
-	appErr := fail.Unwrap(err)
-	if appErr != nil {
-		return h.f(c, req, info, appErr)
+	fErr := fail.Unwrap(err)
+	if fErr != nil {
+		return h.f(c, req, info, fErr)
 	}
 	return err
 }

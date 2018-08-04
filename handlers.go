@@ -37,9 +37,9 @@ func (h *failHandler) HandleStreamServerError(c context.Context, req interface{}
 }
 
 func (h *failHandler) handleError(c context.Context, err error) error {
-	appErr := fail.Unwrap(err)
-	if appErr != nil {
-		return h.f(c, appErr)
+	fErr := fail.Unwrap(err)
+	if fErr != nil {
+		return h.f(c, fErr)
 	}
 	return err
 }
@@ -65,8 +65,8 @@ func (h *notWrappedHandler) HandleStreamServerError(c context.Context, req inter
 }
 
 func (h *notWrappedHandler) handleError(c context.Context, err error) error {
-	appErr := fail.Unwrap(err)
-	if appErr == nil {
+	fErr := fail.Unwrap(err)
+	if fErr == nil {
 		return h.f(c, err)
 	}
 	return err
