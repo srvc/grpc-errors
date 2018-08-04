@@ -1,7 +1,7 @@
 package grpcerrors
 
 import (
-	"github.com/creasty/apperrors"
+	"github.com/izumin5210/fail"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -22,7 +22,7 @@ type StreamServerErrorHandler interface {
 type ErrorHandlerFunc func(context.Context, error) error
 
 // AppErrorHandlerFunc is a function that called by interceptors when specified application erorrs are detected.
-type AppErrorHandlerFunc func(context.Context, *apperrors.Error) error
+type AppErrorHandlerFunc func(context.Context, *fail.Error) error
 
 type appErrorHandler struct {
 	f AppErrorHandlerFunc
@@ -37,14 +37,14 @@ func (h *appErrorHandler) HandleStreamServerError(c context.Context, req interfa
 }
 
 func (h *appErrorHandler) handleError(c context.Context, err error) error {
-	appErr := apperrors.Unwrap(err)
+	appErr := fail.Unwrap(err)
 	if appErr != nil {
 		return h.f(c, appErr)
 	}
 	return err
 }
 
-// WithAppErrorHandler returns a new error handler function for handling errors wrapped with apperrors.
+// WithAppErrorHandler returns a new error handler function for handling errors wrapped with fail.Error.
 func WithAppErrorHandler(f AppErrorHandlerFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
@@ -65,7 +65,7 @@ func (h *notWrappedHandler) HandleStreamServerError(c context.Context, req inter
 }
 
 func (h *notWrappedHandler) handleError(c context.Context, err error) error {
-	appErr := apperrors.Unwrap(err)
+	appErr := fail.Unwrap(err)
 	if appErr == nil {
 		return h.f(c, err)
 	}
@@ -85,7 +85,7 @@ func WithReportableErrorHandler(f AppErrorHandlerFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
+	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
 		if err.Report {
 			return f(c, err)
 		}
@@ -98,7 +98,7 @@ func WithStatusCodeMap(m map[int]codes.Code) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
+	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
 		if c, ok := m[err.StatusCode]; ok {
 			return status.Error(c, err.Error())
 		}
@@ -111,7 +111,7 @@ func WithStatusCodeMapper(mapFn func(code int) codes.Code) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
+	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
 		return status.Error(mapFn(err.StatusCode), err.Error())
 	})
 }
@@ -121,7 +121,7 @@ func WithGrpcStatusUnwrapper() interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
+	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
 		if _, ok := status.FromError(err.Err); ok {
 			return err.Err
 		}

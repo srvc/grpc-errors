@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/creasty/apperrors"
+	"github.com/izumin5210/grpc-errors/testing"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/izumin5210/grpc-errors/testing"
+	"github.com/izumin5210/fail"
 )
 
 // Sevice implementations
@@ -27,21 +27,21 @@ type errorService struct {
 }
 
 func (s *errorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, errors.New("This error is not wrapped with apperrors.Error")
+	return nil, errors.New("This error is not wrapped with fail.Error")
 }
 
 type appErrorService struct {
 }
 
 func (s *appErrorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.New("This error is wrapped with apperrors.Error")
+	return nil, fail.New("This error is wrapped with fail.Error")
 }
 
 type reportErrorService struct {
 }
 
 func (s *reportErrorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.WithReport(apperrors.New("This error should be reported"))
+	return nil, fail.Wrap(fail.New("This error should be reported"), fail.WithReport())
 }
 
 type errorWithStatusService struct {
@@ -49,7 +49,7 @@ type errorWithStatusService struct {
 }
 
 func (s *errorWithStatusService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.WithStatusCode(errors.New("This error has a status code"), s.Code)
+	return nil, fail.Wrap(errors.New("This error has a status code"), fail.WithStatusCode(s.Code))
 }
 
 type errorWithGrpcStatusService struct {
@@ -57,7 +57,7 @@ type errorWithGrpcStatusService struct {
 }
 
 func (s *errorWithGrpcStatusService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.Wrap(status.Error(s.Code, "This error has a gRPC status code"))
+	return nil, fail.Wrap(status.Error(s.Code, "This error has a gRPC status code"))
 }
 
 // Testings
@@ -73,7 +73,7 @@ func Test_UnaryServerInterceptor_WhenDoesNotRespondErrors(t *testing.T) {
 				called = true
 				return err
 			}),
-			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
+			WithReportableErrorHandler(func(_ context.Context, err *fail.Error) error {
 				called = true
 				return err
 			}),
@@ -166,7 +166,7 @@ func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsNotAnno
 	ctx.Service = &appErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
+			WithReportableErrorHandler(func(_ context.Context, err *fail.Error) error {
 				called = true
 				return err
 			}),
@@ -197,7 +197,7 @@ func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsAnnotat
 	ctx.Service = &reportErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
+			WithReportableErrorHandler(func(_ context.Context, err *fail.Error) error {
 				called = true
 				return err
 			}),
@@ -398,7 +398,7 @@ func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErr
 	ctx.Service = &appErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *apperrors.Error) error {
+			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *fail.Error) error {
 				called = true
 				return err
 			}),
@@ -430,7 +430,7 @@ func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErr
 	ctx.Service = &reportErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *apperrors.Error) error {
+			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *fail.Error) error {
 				called = true
 				if got, want := gotReq, req; !reflect.DeepEqual(got, want) {
 					t.Errorf("Received request is %v, want %v", got, want)
