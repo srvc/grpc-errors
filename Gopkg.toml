@@ -31,3 +31,7 @@ required = [
 [[constraint]]
   name = "github.com/creasty/apperrors"
   version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/izumin5210/fail"
+  version = "2.0.0"
