@@ -97,7 +97,7 @@ func Test_UnaryServerInterceptor_WhenDoesNotRespondErrors(t *testing.T) {
 	}
 }
 
-func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsNotWrappedWithAppError(t *testing.T) {
+func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsNotWrappedWithFail(t *testing.T) {
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)
@@ -128,7 +128,7 @@ func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsNotWrap
 	}
 }
 
-func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsWrappedWithAppError(t *testing.T) {
+func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsWrappedWithFail(t *testing.T) {
 	called := false
 
 	ctx := errorstesting.CreateTestContext(t)

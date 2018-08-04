@@ -21,22 +21,22 @@ type StreamServerErrorHandler interface {
 // ErrorHandlerFunc is a function that called by interceptors when specified erorrs are detected.
 type ErrorHandlerFunc func(context.Context, error) error
 
-// AppErrorHandlerFunc is a function that called by interceptors when specified application erorrs are detected.
-type AppErrorHandlerFunc func(context.Context, *fail.Error) error
+// FailHandlerFunc is a function that called by interceptors when specified application erorrs are detected.
+type FailHandlerFunc func(context.Context, *fail.Error) error
 
-type appErrorHandler struct {
-	f AppErrorHandlerFunc
+type failHandler struct {
+	f FailHandlerFunc
 }
 
-func (h *appErrorHandler) HandleUnaryServerError(c context.Context, req interface{}, info *grpc.UnaryServerInfo, err error) error {
+func (h *failHandler) HandleUnaryServerError(c context.Context, req interface{}, info *grpc.UnaryServerInfo, err error) error {
 	return h.handleError(c, err)
 }
 
-func (h *appErrorHandler) HandleStreamServerError(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err error) error {
+func (h *failHandler) HandleStreamServerError(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err error) error {
 	return h.handleError(c, err)
 }
 
-func (h *appErrorHandler) handleError(c context.Context, err error) error {
+func (h *failHandler) handleError(c context.Context, err error) error {
 	appErr := fail.Unwrap(err)
 	if appErr != nil {
 		return h.f(c, appErr)
@@ -44,12 +44,12 @@ func (h *appErrorHandler) handleError(c context.Context, err error) error {
 	return err
 }
 
-// WithAppErrorHandler returns a new error handler function for handling errors wrapped with fail.Error.
-func WithAppErrorHandler(f AppErrorHandlerFunc) interface {
+// WithFailHandler returns a new error handler function for handling errors wrapped with fail.Error.
+func WithFailHandler(f FailHandlerFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return &appErrorHandler{f: f}
+	return &failHandler{f: f}
 }
 
 type notWrappedHandler struct {
@@ -81,11 +81,11 @@ func WithNotWrappedErrorHandler(f ErrorHandlerFunc) interface {
 }
 
 // WithReportableErrorHandler returns a new error handler function for handling errors annotated with the reportability.
-func WithReportableErrorHandler(f AppErrorHandlerFunc) interface {
+func WithReportableErrorHandler(f FailHandlerFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
 		if err.Report {
 			return f(c, err)
 		}
@@ -101,7 +101,7 @@ func WithStatusCodeMap(m CodeMap) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
 		if c, ok := m[err.StatusCode]; ok {
 			return status.Error(c, err.Error())
 		}
@@ -117,7 +117,7 @@ func WithStatusCodeMapper(mapFn CodeMapFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
 		return status.Error(mapFn(err.StatusCode), err.Error())
 	})
 }
@@ -127,7 +127,7 @@ func WithGrpcStatusUnwrapper() interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *fail.Error) error {
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
 		if _, ok := status.FromError(err.Err); ok {
 			return err.Err
 		}
