@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/izumin5210/fail"
+	"github.com/srvc/fail"
 )
 
 // Sevice implementations

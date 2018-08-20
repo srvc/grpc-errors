@@ -18,7 +18,7 @@ import (
 	"net"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/izumin5210/fail"
+	"github.com/srvc/fail"
 	"github.com/izumin5210/grpc-errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
