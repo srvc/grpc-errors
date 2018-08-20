@@ -1,37 +1,37 @@
 package grpcerrors
 
 import (
-	"github.com/creasty/apperrors"
+	"github.com/srvc/fail"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
-// StreamServerAppErrorHandlerFunc is a function that called by stream server interceptors when specified application erorrs are detected.
-type StreamServerAppErrorHandlerFunc func(context.Context, interface{}, interface{}, *grpc.StreamServerInfo, *apperrors.Error) error
+// StreamServerFailHandlerFunc is a function that called by stream server interceptors when specified application erorrs are detected.
+type StreamServerFailHandlerFunc func(context.Context, interface{}, interface{}, *grpc.StreamServerInfo, *fail.Error) error
 
-type streamServerAppErrorHandler struct {
-	f StreamServerAppErrorHandlerFunc
+type streamServerFailHandler struct {
+	f StreamServerFailHandlerFunc
 }
 
-func (h *streamServerAppErrorHandler) HandleStreamServerError(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err error) error {
-	appErr := apperrors.Unwrap(err)
-	if appErr != nil {
-		return h.f(c, req, resp, info, appErr)
+func (h *streamServerFailHandler) HandleStreamServerError(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err error) error {
+	fErr := fail.Unwrap(err)
+	if fErr != nil {
+		return h.f(c, req, resp, info, fErr)
 	}
 	return err
 }
 
-// WithStreamServerAppErrorHandler returns a new error handler for stream servers for handling errors wrapped with apperrors.
-func WithStreamServerAppErrorHandler(f StreamServerAppErrorHandlerFunc) StreamServerErrorHandler {
-	return &streamServerAppErrorHandler{f: f}
+// WithStreamServerFailHandler returns a new error handler for stream servers for handling errors wrapped with fail.Error.
+func WithStreamServerFailHandler(f StreamServerFailHandlerFunc) StreamServerErrorHandler {
+	return &streamServerFailHandler{f: f}
 }
 
 // WithStreamServerReportableErrorHandler returns a new error handler for stream servers for handling errors annotated with the reportability.
-func WithStreamServerReportableErrorHandler(f StreamServerAppErrorHandlerFunc) StreamServerErrorHandler {
-	return WithStreamServerAppErrorHandler(func(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err *apperrors.Error) error {
-		if err.Report {
-			return f(c, req, resp, info, err)
+func WithStreamServerReportableErrorHandler(f StreamServerFailHandlerFunc) StreamServerErrorHandler {
+	return WithStreamServerFailHandler(func(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err *fail.Error) error {
+		if err.Ignorable {
+			return err
 		}
-		return err
+		return f(c, req, resp, info, err)
 	})
 }

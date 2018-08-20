@@ -5,12 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/creasty/apperrors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/srvc/fail"
 	"github.com/srvc/grpc-errors/testing"
 )
 
@@ -27,21 +27,21 @@ type errorService struct {
 }
 
 func (s *errorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, errors.New("This error is not wrapped with apperrors.Error")
+	return nil, errors.New("This error is not wrapped with fail.Error")
 }
 
-type appErrorService struct {
+type failService struct {
 }
 
-func (s *appErrorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.New("This error is wrapped with apperrors.Error")
+func (s *failService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
+	return nil, fail.New("This error is wrapped with fail.Error")
 }
 
-type reportErrorService struct {
+type ignoredErrorService struct {
 }
 
-func (s *reportErrorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.WithReport(apperrors.New("This error should be reported"))
+func (s *ignoredErrorService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
+	return nil, fail.Wrap(errors.New("This error should be ignored"), fail.WithIgnorable())
 }
 
 type errorWithStatusService struct {
@@ -49,7 +49,7 @@ type errorWithStatusService struct {
 }
 
 func (s *errorWithStatusService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.WithStatusCode(errors.New("This error has a status code"), s.Code)
+	return nil, fail.Wrap(errors.New("This error has a status code"), fail.WithCode(s.Code))
 }
 
 type errorWithGrpcStatusService struct {
@@ -57,334 +57,161 @@ type errorWithGrpcStatusService struct {
 }
 
 func (s *errorWithGrpcStatusService) EmptyCall(context.Context, *errorstesting.Empty) (*errorstesting.Empty, error) {
-	return nil, apperrors.Wrap(status.Error(s.Code, "This error has a gRPC status code"))
+	return nil, fail.Wrap(status.Error(s.Code, "This error has a gRPC status code"))
 }
 
 // Testings
 // ================================================
-func Test_UnaryServerInterceptor_WhenDoesNotRespondErrors(t *testing.T) {
-	called := false
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &emptyService{}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
-				called = true
-				return err
-			}),
-			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
-				called = true
-				return err
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp == nil {
-		t.Error("The request should return a response")
+func Test_UnaryServerInterceptor(t *testing.T) {
+	cases := []struct {
+		test                  string
+		server                errorstesting.TestServiceServer
+		code                  codes.Code
+		errored               bool
+		notWrapped            bool
+		reportable            bool
+		handleNotWrappedError func(err error) error
+	}{
+		{
+			test:   "no errors",
+			server: &emptyService{},
+			code:   codes.OK,
+		},
+		{
+			test:       "unwrapped error",
+			server:     &errorService{},
+			code:       codes.Unknown,
+			errored:    true,
+			notWrapped: true,
+			reportable: false,
+		},
+		{
+			test:                  "wrap unwrapped error",
+			server:                &errorService{},
+			code:                  codes.Unknown,
+			errored:               true,
+			notWrapped:            true,
+			reportable:            true,
+			handleNotWrappedError: func(err error) error { return fail.Wrap(err) },
+		},
+		{
+			test:       "wrapped error",
+			server:     &failService{},
+			code:       codes.Unknown,
+			errored:    true,
+			notWrapped: false,
+			reportable: true,
+		},
+		{
+			test:       "ignored error",
+			server:     &ignoredErrorService{},
+			code:       codes.Unknown,
+			errored:    true,
+			notWrapped: false,
+			reportable: false,
+		},
+		{
+			test:       "error with code that contained CodeMap",
+			server:     &errorWithStatusService{Code: 50},
+			code:       codes.PermissionDenied,
+			errored:    true,
+			notWrapped: false,
+			reportable: true,
+		},
+		{
+			test:       "error with unknown code",
+			server:     &errorWithStatusService{Code: 51},
+			code:       codes.Unknown,
+			errored:    true,
+			notWrapped: false,
+			reportable: true,
+		},
+		{
+			test:       "error with code that can handle with CodeMapper",
+			server:     &errorWithStatusService{Code: 52},
+			code:       codes.InvalidArgument,
+			errored:    true,
+			notWrapped: false,
+			reportable: true,
+		},
+		{
+			test:       "error with gRPC's code",
+			server:     &errorWithGrpcStatusService{Code: codes.AlreadyExists},
+			code:       codes.AlreadyExists,
+			errored:    true,
+			notWrapped: false,
+			reportable: true,
+		},
 	}
 
-	if err != nil {
-		t.Error("The request should not return any errors")
-	}
+	for _, c := range cases {
+		t.Run(c.test, func(t *testing.T) {
+			var notWrapped, reportable bool
 
-	if called {
-		t.Error("Report error handler should not be called")
-	}
-}
+			ctx := errorstesting.CreateTestContext(t)
+			ctx.Service = c.server
+			ctx.AddUnaryServerInterceptor(
+				UnaryServerInterceptor(
+					WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
+						notWrapped = true
+						if c.handleNotWrappedError != nil {
+							return c.handleNotWrappedError(err)
+						}
+						return err
+					}),
+					WithReportableErrorHandler(func(_ context.Context, err *fail.Error) error {
+						reportable = true
+						return err
+					}),
+					WithGrpcStatusUnwrapper(),
+					WithCodeMap(CodeMap{50: codes.PermissionDenied}),
+					WithCodeMapper(func(c interface{}) codes.Code {
+						if c == 52 {
+							return codes.InvalidArgument
+						}
+						return codes.Unknown
+					}),
+				),
+			)
+			ctx.Setup()
+			defer ctx.Teardown()
 
-func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsNotWrappedWithAppError(t *testing.T) {
-	called := false
+			resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
 
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &errorService{}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
-				called = true
-				return err
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if !called {
-		t.Error("Report error handler should be called")
-	}
-}
-
-func Test_UnaryServerInterceptor_WithNotWrappedErrorHandler_WhenAnErrorIsWrappedWithAppError(t *testing.T) {
-	called := false
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &appErrorService{}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithNotWrappedErrorHandler(func(_ context.Context, err error) error {
-				called = true
-				return err
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if called {
-		t.Error("Report error handler should not be called")
-	}
-}
-
-func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsNotAnnotatedWithReport(t *testing.T) {
-	called := false
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &appErrorService{}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
-				called = true
-				return err
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if called {
-		t.Error("Report error handler should not be called")
-	}
-}
-
-func Test_UnaryServerInterceptor_WithReportableErrorHandler_WhenAnErrorIsAnnotatedWithReport(t *testing.T) {
-	called := false
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &reportErrorService{}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithReportableErrorHandler(func(_ context.Context, err *apperrors.Error) error {
-				called = true
-				return err
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if !called {
-		t.Error("Report error handler should be called")
-	}
-}
-
-func Test_UnaryServerInterceptor_WithStatusCodeMap(t *testing.T) {
-	code := 50
-	mappedCode := codes.Unavailable
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &errorWithStatusService{Code: code}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithStatusCodeMap(map[int]codes.Code{
-				code: mappedCode,
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if st, ok := status.FromError(err); !ok {
-		t.Error("Returned error should has status code")
-	} else if got, want := st.Code(), mappedCode; got != want {
-		t.Errorf("Returned error had status code %v, want %v", got, want)
-	}
-}
-
-func Test_UnaryServerInterceptor_WithStatusCodeMap_WhenUnknownCode(t *testing.T) {
-	code := 50
-	mappedCode := codes.Unavailable
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &errorWithStatusService{Code: code + 1}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithStatusCodeMap(map[int]codes.Code{
-				code: mappedCode,
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if st, ok := status.FromError(err); !ok {
-		t.Error("Returned error should has status code")
-	} else if got, want := st.Code(), codes.Unknown; got != want {
-		t.Errorf("Returned error had status code %v, want %v", got, want)
-	}
-}
-
-func Test_UnaryServerInterceptor_WithGrpcStatusUnwrapper(t *testing.T) {
-	code := codes.Unauthenticated
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &errorWithGrpcStatusService{Code: code}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithGrpcStatusUnwrapper(),
-			WithStatusCodeMap(map[int]codes.Code{
-				50: codes.Unavailable,
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if st, ok := status.FromError(err); !ok {
-		t.Error("Returned error should has status code")
-	} else if got, want := st.Code(), code; got != want {
-		t.Errorf("Returned error had status code %v, want %v", got, want)
-	}
-}
-
-func Test_UnaryServerInterceptor_WithGrpcStatusUnwrapper_WithoutGrpcStatus(t *testing.T) {
-	code := 50
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &errorWithStatusService{Code: code}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithGrpcStatusUnwrapper(),
-			WithStatusCodeMap(map[int]codes.Code{
-				code: codes.Unauthenticated,
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
-
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
-
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
-
-	if err == nil {
-		t.Error("The request should return an error")
-	}
-
-	if st, ok := status.FromError(err); !ok {
-		t.Error("Returned error should has status code")
-	} else if got, want := st.Code(), codes.Unauthenticated; got != want {
-		t.Errorf("Returned error had status code %v, want %v", got, want)
-	}
-}
-
-func Test_UnaryServerInterceptor_WithStatusCodeMapper(t *testing.T) {
-	code := 50
-	mappedCode := codes.Unavailable
-
-	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &errorWithStatusService{Code: code}
-	ctx.AddUnaryServerInterceptor(
-		UnaryServerInterceptor(
-			WithStatusCodeMapper(func(c int) codes.Code {
-				if got, want := c, code; got != want {
-					t.Errorf("Mapper func received %d, want %d", got, want)
+			if c.errored {
+				if resp != nil {
+					t.Error("The request should not return a response")
 				}
-				return mappedCode
-			}),
-		),
-	)
-	ctx.Setup()
-	defer ctx.Teardown()
 
-	resp, err := ctx.Client.EmptyCall(context.Background(), &errorstesting.Empty{})
+				if err == nil {
+					t.Error("The request should return an error")
+				}
+			} else {
+				if resp == nil {
+					t.Error("The request should return a response")
+				}
 
-	if resp != nil {
-		t.Error("The request should not return any responses")
-	}
+				if err != nil {
+					t.Error("The request should not return any errors")
+				}
+			}
 
-	if err == nil {
-		t.Error("The request should return an error")
-	}
+			if got, want := notWrapped, c.notWrapped; got != want {
+				t.Errorf("The returned error is wrapped: got %t, want %t", got, want)
+			}
 
-	if st, ok := status.FromError(err); !ok {
-		t.Error("Returned error should has status code")
-	} else if got, want := st.Code(), mappedCode; got != want {
-		t.Errorf("Returned error had status code %v, want %v", got, want)
+			if got, want := reportable, c.reportable; got != want {
+				t.Errorf("The returned error is reportable: got %t, want %t", got, want)
+			}
+
+			if st, ok := status.FromError(err); ok {
+				if got, want := st.Code(), c.code; got != want {
+					t.Errorf("The returned error has error code %v, want %v", got, want)
+				}
+			} else {
+				t.Errorf("The returned error does not have error code: %v", err)
+			}
+		})
 	}
 }
 
@@ -395,10 +222,10 @@ func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErr
 	req := &errorstesting.Empty{}
 
 	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &appErrorService{}
+	ctx.Service = &failService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *apperrors.Error) error {
+			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *fail.Error) error {
 				called = true
 				return err
 			}),
@@ -417,20 +244,20 @@ func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErr
 		t.Error("The request should return an error")
 	}
 
-	if called {
+	if !called {
 		t.Error("Report error handler should not be called")
 	}
 }
 
-func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErrorIsAnnotatedWithReport(t *testing.T) {
+func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErrorIsAnnotatedWithIgnored(t *testing.T) {
 	called := false
 	req := &errorstesting.Empty{}
 
 	ctx := errorstesting.CreateTestContext(t)
-	ctx.Service = &reportErrorService{}
+	ctx.Service = &ignoredErrorService{}
 	ctx.AddUnaryServerInterceptor(
 		UnaryServerInterceptor(
-			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *apperrors.Error) error {
+			WithUnaryServerReportableErrorHandler(func(_ context.Context, gotReq interface{}, info *grpc.UnaryServerInfo, err *fail.Error) error {
 				called = true
 				if got, want := gotReq, req; !reflect.DeepEqual(got, want) {
 					t.Errorf("Received request is %v, want %v", got, want)
@@ -452,7 +279,7 @@ func Test_UnaryServerInterceptor_WithUnaryServerReportableErrorHandler_WhenAnErr
 		t.Error("The request should return an error")
 	}
 
-	if !called {
+	if called {
 		t.Error("Report error handler should be called")
 	}
 }

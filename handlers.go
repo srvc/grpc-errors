@@ -1,7 +1,7 @@
 package grpcerrors
 
 import (
-	"github.com/creasty/apperrors"
+	"github.com/srvc/fail"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -21,35 +21,35 @@ type StreamServerErrorHandler interface {
 // ErrorHandlerFunc is a function that called by interceptors when specified erorrs are detected.
 type ErrorHandlerFunc func(context.Context, error) error
 
-// AppErrorHandlerFunc is a function that called by interceptors when specified application erorrs are detected.
-type AppErrorHandlerFunc func(context.Context, *apperrors.Error) error
+// FailHandlerFunc is a function that called by interceptors when specified application erorrs are detected.
+type FailHandlerFunc func(context.Context, *fail.Error) error
 
-type appErrorHandler struct {
-	f AppErrorHandlerFunc
+type failHandler struct {
+	f FailHandlerFunc
 }
 
-func (h *appErrorHandler) HandleUnaryServerError(c context.Context, req interface{}, info *grpc.UnaryServerInfo, err error) error {
+func (h *failHandler) HandleUnaryServerError(c context.Context, req interface{}, info *grpc.UnaryServerInfo, err error) error {
 	return h.handleError(c, err)
 }
 
-func (h *appErrorHandler) HandleStreamServerError(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err error) error {
+func (h *failHandler) HandleStreamServerError(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err error) error {
 	return h.handleError(c, err)
 }
 
-func (h *appErrorHandler) handleError(c context.Context, err error) error {
-	appErr := apperrors.Unwrap(err)
-	if appErr != nil {
-		return h.f(c, appErr)
+func (h *failHandler) handleError(c context.Context, err error) error {
+	fErr := fail.Unwrap(err)
+	if fErr != nil {
+		return h.f(c, fErr)
 	}
 	return err
 }
 
-// WithAppErrorHandler returns a new error handler function for handling errors wrapped with apperrors.
-func WithAppErrorHandler(f AppErrorHandlerFunc) interface {
+// WithFailHandler returns a new error handler function for handling errors wrapped with fail.Error.
+func WithFailHandler(f FailHandlerFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return &appErrorHandler{f: f}
+	return &failHandler{f: f}
 }
 
 type notWrappedHandler struct {
@@ -65,8 +65,8 @@ func (h *notWrappedHandler) HandleStreamServerError(c context.Context, req inter
 }
 
 func (h *notWrappedHandler) handleError(c context.Context, err error) error {
-	appErr := apperrors.Unwrap(err)
-	if appErr == nil {
+	fErr := fail.Unwrap(err)
+	if fErr == nil {
 		return h.f(c, err)
 	}
 	return err
@@ -81,38 +81,44 @@ func WithNotWrappedErrorHandler(f ErrorHandlerFunc) interface {
 }
 
 // WithReportableErrorHandler returns a new error handler function for handling errors annotated with the reportability.
-func WithReportableErrorHandler(f AppErrorHandlerFunc) interface {
+func WithReportableErrorHandler(f FailHandlerFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
-		if err.Report {
-			return f(c, err)
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
+		if err.Ignorable {
+			return err
 		}
-		return err
+		return f(c, err)
 	})
 }
 
-// WithStatusCodeMap returns a new error handler function for mapping status codes to gRPC's one.
-func WithStatusCodeMap(m map[int]codes.Code) interface {
+// CodeMap maps any status codes to gRPC's `codes.Code`s.
+type CodeMap map[interface{}]codes.Code
+
+// WithCodeMap returns a new error handler function for mapping status codes to gRPC's one.
+func WithCodeMap(m CodeMap) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
-		if c, ok := m[err.StatusCode]; ok {
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
+		if c, ok := m[err.Code]; ok {
 			return status.Error(c, err.Error())
 		}
 		return err
 	})
 }
 
-// WithStatusCodeMapper returns a new error handler function for mapping status codes to gRPC's one with given function.
-func WithStatusCodeMapper(mapFn func(code int) codes.Code) interface {
+// CodeMapFunc returns gRPC's `codes.Code`s from given any codes.
+type CodeMapFunc func(code interface{}) codes.Code
+
+// WithCodeMapper returns a new error handler function for mapping status codes to gRPC's one with given function.
+func WithCodeMapper(mapFn CodeMapFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
-		return status.Error(mapFn(err.StatusCode), err.Error())
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
+		return status.Error(mapFn(err.Code), err.Error())
 	})
 }
 
@@ -121,7 +127,7 @@ func WithGrpcStatusUnwrapper() interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
-	return WithAppErrorHandler(func(c context.Context, err *apperrors.Error) error {
+	return WithFailHandler(func(c context.Context, err *fail.Error) error {
 		if _, ok := status.FromError(err.Err); ok {
 			return err.Err
 		}

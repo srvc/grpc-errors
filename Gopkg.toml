@@ -26,8 +26,8 @@ required = [
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.6.0"
+  version = "^1.6.0"
 
 [[constraint]]
-  name = "github.com/creasty/apperrors"
-  version = "1.0.0"
+  name = "github.com/srvc/fail"
+  version = "^3.0.0"

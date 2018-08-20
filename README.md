@@ -17,15 +17,15 @@ import (
 	"context"
 	"net"
 
-	"github.com/creasty/apperrors"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/srvc/fail"
 	"github.com/srvc/grpc-errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
 
 const (
-	CodeOK int = iota
+	CodeOK uint32 = iota
 	CodeInvalidArgument
 	CodeNotFound
 	CodeYourCustomError
@@ -33,7 +33,7 @@ const (
 	CodeUnknown
 )
 
-var grpcCodeByYourCode = map[int]codes.Code{
+var grpcCodeByYourCode = grpcerrors.CodeMap{
 	CodeOK:              codes.OK,
 	CodeInvalidArgument: codes.InvalidArgument,
 	CodeNotFound:        codes.NotFound,
@@ -47,17 +47,17 @@ func main() {
 
 	errorHandlers := []grpcerrors.ErrorHandlerFunc{
 		grpcerrors.WithNotWrappedErrorHandler(func(c context.Context, err error) error {
-			// WithNotWrappedErrorHandler handles an error not wrapped with `*apperror.Error`.
-			// A handler function should wrap received error with `*apperror.Error`.
-			return apperrors.WithStatusCode(err, CodeNotWrapped)
+			// WithNotWrappedErrorHandler handles an error not wrapped with `*fail.Error`.
+			// A handler function should wrap received error with `*fail.Error`.
+			return fail.Wrap(err, fail.WithCode(CodeNotWrapped))
 		}),
-		grpcerrors.WithReportableErrorHandler(func(c context.Context, err *apperrors.Error) error {
+		grpcerrors.WithReportableErrorHandler(func(c context.Context, err *fail.Error) error {
 			// WithReportableErrorHandler handles an erorr annotated with the reportability.
 			// You reports to an external service if necessary.
 			// And you can attach request contexts to error reports.
 			return err
 		}),
-		grpcerrors.WithStatusCodeMap(grpcCodeByYourCode),
+		grpcerrors.WithCodeMap(grpcCodeByYourCode),
 	}
 
 	s := grpc.NewServer(
