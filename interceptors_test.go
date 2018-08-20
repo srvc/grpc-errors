@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/izumin5210/grpc-errors/testing"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/srvc/fail"
+	"github.com/srvc/grpc-errors/testing"
 )
 
 // Sevice implementations

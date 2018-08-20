@@ -1,10 +1,10 @@
 # grpc-errors
-[![Build Status](https://travis-ci.org/izumin5210/grpc-errors.svg?branch=master)](https://travis-ci.org/izumin5210/grpc-errors)
-[![codecov](https://codecov.io/gh/izumin5210/grpc-errors/branch/master/graph/badge.svg)](https://codecov.io/gh/izumin5210/grpc-errors)
-[![GoDoc](https://godoc.org/github.com/izumin5210/grpc-errors?status.svg)](https://godoc.org/github.com/izumin5210/grpc-errors)
+[![Build Status](https://travis-ci.org/srvc/grpc-errors.svg?branch=master)](https://travis-ci.org/srvc/grpc-errors)
+[![codecov](https://codecov.io/gh/srvc/grpc-errors/branch/master/graph/badge.svg)](https://codecov.io/gh/srvc/grpc-errors)
+[![GoDoc](https://godoc.org/github.com/srvc/grpc-errors?status.svg)](https://godoc.org/github.com/srvc/grpc-errors)
 [![Go project version](https://badge.fury.io/go/github.com%2Fizumin5210%2Fgrpc-errors.svg)](https://badge.fury.io/go/github.com%2Fizumin5210%2Fgrpc-errors)
-[![Go Report Card](https://goreportcard.com/badge/github.com/izumin5210/grpc-errors)](https://goreportcard.com/report/github.com/izumin5210/grpc-errors)
-[![license](https://img.shields.io/github/license/izumin5210/grpc-errors.svg)](./LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/srvc/grpc-errors)](https://goreportcard.com/report/github.com/srvc/grpc-errors)
+[![license](https://img.shields.io/github/license/srvc/grpc-errors.svg)](./LICENSE)
 
 `grpc-errors` is a middleware providing better error handling to resolve errors easily.
 
@@ -19,7 +19,7 @@ import (
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/srvc/fail"
-	"github.com/izumin5210/grpc-errors"
+	"github.com/srvc/grpc-errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
