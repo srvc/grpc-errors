@@ -29,9 +29,9 @@ func WithStreamServerFailHandler(f StreamServerFailHandlerFunc) StreamServerErro
 // WithStreamServerReportableErrorHandler returns a new error handler for stream servers for handling errors annotated with the reportability.
 func WithStreamServerReportableErrorHandler(f StreamServerFailHandlerFunc) StreamServerErrorHandler {
 	return WithStreamServerFailHandler(func(c context.Context, req interface{}, resp interface{}, info *grpc.StreamServerInfo, err *fail.Error) error {
-		if err.Report {
-			return f(c, req, resp, info, err)
+		if err.Ignorable {
+			return err
 		}
-		return err
+		return f(c, req, resp, info, err)
 	})
 }

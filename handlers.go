@@ -86,10 +86,10 @@ func WithReportableErrorHandler(f FailHandlerFunc) interface {
 	StreamServerErrorHandler
 } {
 	return WithFailHandler(func(c context.Context, err *fail.Error) error {
-		if err.Report {
-			return f(c, err)
+		if err.Ignorable {
+			return err
 		}
-		return err
+		return f(c, err)
 	})
 }
 
@@ -102,7 +102,7 @@ func WithStatusCodeMap(m CodeMap) interface {
 	StreamServerErrorHandler
 } {
 	return WithFailHandler(func(c context.Context, err *fail.Error) error {
-		if c, ok := m[err.StatusCode]; ok {
+		if c, ok := m[err.Code]; ok {
 			return status.Error(c, err.Error())
 		}
 		return err
@@ -118,7 +118,7 @@ func WithStatusCodeMapper(mapFn CodeMapFunc) interface {
 	StreamServerErrorHandler
 } {
 	return WithFailHandler(func(c context.Context, err *fail.Error) error {
-		return status.Error(mapFn(err.StatusCode), err.Error())
+		return status.Error(mapFn(err.Code), err.Error())
 	})
 }
 

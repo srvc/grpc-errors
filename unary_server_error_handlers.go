@@ -29,9 +29,9 @@ func WithUnaryServerFailHandler(f UnaryServerFailHandlerFunc) UnaryServerErrorHa
 // WithUnaryServerReportableErrorHandler returns a new error handler for unary servers for handling errors annotated with the reportability.
 func WithUnaryServerReportableErrorHandler(f UnaryServerFailHandlerFunc) UnaryServerErrorHandler {
 	return WithUnaryServerFailHandler(func(c context.Context, req interface{}, info *grpc.UnaryServerInfo, err *fail.Error) error {
-		if err.Report {
-			return f(c, req, info, err)
+		if err.Ignorable {
+			return err
 		}
-		return err
+		return f(c, req, info, err)
 	})
 }
