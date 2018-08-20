@@ -49,7 +49,7 @@ func main() {
 		grpcerrors.WithNotWrappedErrorHandler(func(c context.Context, err error) error {
 			// WithNotWrappedErrorHandler handles an error not wrapped with `*fail.Error`.
 			// A handler function should wrap received error with `*fail.Error`.
-			return fail.Wrap(err, fail.WithStatusCode(CodeNotWrapped))
+			return fail.Wrap(err, fail.WithCode(CodeNotWrapped))
 		}),
 		grpcerrors.WithReportableErrorHandler(func(c context.Context, err *fail.Error) error {
 			// WithReportableErrorHandler handles an erorr annotated with the reportability.
@@ -57,7 +57,7 @@ func main() {
 			// And you can attach request contexts to error reports.
 			return err
 		}),
-		grpcerrors.WithStatusCodeMap(grpcCodeByYourCode),
+		grpcerrors.WithCodeMap(grpcCodeByYourCode),
 	}
 
 	s := grpc.NewServer(

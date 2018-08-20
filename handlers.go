@@ -96,8 +96,8 @@ func WithReportableErrorHandler(f FailHandlerFunc) interface {
 // CodeMap maps any status codes to gRPC's `codes.Code`s.
 type CodeMap map[interface{}]codes.Code
 
-// WithStatusCodeMap returns a new error handler function for mapping status codes to gRPC's one.
-func WithStatusCodeMap(m CodeMap) interface {
+// WithCodeMap returns a new error handler function for mapping status codes to gRPC's one.
+func WithCodeMap(m CodeMap) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {
@@ -112,8 +112,8 @@ func WithStatusCodeMap(m CodeMap) interface {
 // CodeMapFunc returns gRPC's `codes.Code`s from given any codes.
 type CodeMapFunc func(code interface{}) codes.Code
 
-// WithStatusCodeMapper returns a new error handler function for mapping status codes to gRPC's one with given function.
-func WithStatusCodeMapper(mapFn CodeMapFunc) interface {
+// WithCodeMapper returns a new error handler function for mapping status codes to gRPC's one with given function.
+func WithCodeMapper(mapFn CodeMapFunc) interface {
 	UnaryServerErrorHandler
 	StreamServerErrorHandler
 } {

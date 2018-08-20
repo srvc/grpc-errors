@@ -164,8 +164,8 @@ func Test_UnaryServerInterceptor(t *testing.T) {
 						return err
 					}),
 					WithGrpcStatusUnwrapper(),
-					WithStatusCodeMap(CodeMap{50: codes.PermissionDenied}),
-					WithStatusCodeMapper(func(c interface{}) codes.Code {
+					WithCodeMap(CodeMap{50: codes.PermissionDenied}),
+					WithCodeMapper(func(c interface{}) codes.Code {
 						if c == 52 {
 							return codes.InvalidArgument
 						}
