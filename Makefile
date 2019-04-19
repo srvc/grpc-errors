@@ -9,8 +9,8 @@ DEP_COMMANDS := \
 #  Commands
 #-----------------------------------------------
 .PHONY: dep
-dep: Gopkg.toml Gopkg.lock
-	@dep ensure -v
+dep:
+	@go mod download
 	@GOBIN="$$PWD/bin"; \
 	pkgs="$(DEP_COMMANDS)"; \
 	for pkg in $$pkgs; do \

@@ -1,23 +1,25 @@
 language: go
 
 go:
-- 1.8
-- 1.9
+- 1.11
+- 1.12
+
+env:
+  global:
+  - GO111MODULE=on
 
 cache:
   directories:
-  - vendor
+  - /go/pkg/mod/cache
 
 before_install:
-- go get -u github.com/golang/dep/cmd/dep
 - go get -u github.com/golang/lint/golint
 
 install:
-- dep ensure -v
+- go mod download
 
 script:
 - make ci-test
-- go test -race -coverprofile=coverage.txt -covermode=atomic
 
 after_success:
 - bash <(curl -s https://codecov.io/bash)
