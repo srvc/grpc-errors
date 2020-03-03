@@ -1,7 +1,7 @@
 package grpcerrors
 
 import (
-	"github.com/srvc/fail"
+	"github.com/srvc/fail/v4"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
